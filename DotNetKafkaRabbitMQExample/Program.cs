@@ -11,6 +11,8 @@ using DotNetKafkaRabbitMQExample.Data;
 using DotNetKafkaRabbitMQExample.Models;
 using DotNetKafkaRabbitMQExample.Repository;
 using DotNetKafkaRabbitMQExample.Repository.IRepository;
+using Infrastructure.Kafka;
+using Infrastructure.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,6 +65,14 @@ builder.Services.AddScoped<IMapper, ServiceMapper>();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+// Productor Kafka (singleton: una sola conexión reutilizada)
+builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
+
+builder.Services.AddHostedService<KafkaConsumerService>();
+
+builder.Services.AddHostedService<EmailWorkerService>();
+
 
 builder.Services.AddAuthentication(options =>
 {

@@ -1,0 +1,223 @@
+using Confluent.Kafka;
+using RabbitMQ.Client;
+using System.Text;
+using System.Text.Json;
+using Application.Events;
+using Confluent.Kafka.Admin;
+
+namespace Infrastructure.Kafka;
+
+// BackgroundService corre en un hilo separado sin bloquear tu API
+public class KafkaConsumerService : BackgroundService
+{
+    private readonly IConfiguration _config;
+    private readonly string[] KafkaTopic = KafkaTopics.All;
+    private readonly string[] RMQQueues = RabbitMQQueue.All;
+    private const string ConsumerGroup = "notification-service";
+
+    public KafkaConsumerService(IConfiguration config)
+    {
+        _config = config;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // Corre en un hilo del thread pool para no bloquear el startup
+        await Task.Run(() => ConsumeLoop(stoppingToken), stoppingToken);
+    }
+
+    private async Task ConsumeLoop(CancellationToken stoppingToken)
+    {
+        // ─── Configuración del Consumer Kafka ──────────────────────
+        var consumerConfig = new ConsumerConfig
+        {
+            BootstrapServers = _config["Kafka:BootstrapServers"] ?? "localhost:9092",
+            GroupId = ConsumerGroup,
+
+            // earliest = procesa desde el inicio si es la primera vez
+            // latest   = procesa solo mensajes nuevos
+            AutoOffsetReset = AutoOffsetReset.Earliest,
+
+            // Desactivamos el auto-commit para hacer commit manual
+            // Solo confirmamos el offset DESPUÉS de publicar en RabbitMQ
+            EnableAutoCommit = false
+        };
+
+
+        await EnsureTopicsExistAsync();
+
+        using var consumer = new ConsumerBuilder<string, string>(consumerConfig).Build();
+        consumer.Subscribe(KafkaTopic);
+
+        // ─── Conexión a RabbitMQ ────────────────────────────────────
+        var rabbitFactory = new ConnectionFactory
+        {
+            HostName = _config["RabbitMQ:Host"] ?? "localhost",
+            UserName = _config["RabbitMQ:Username"] ?? "admin",
+            Password = _config["RabbitMQ:Password"] ?? "admin123"
+        };
+
+        IConnection rabbitConn = await rabbitFactory.CreateConnectionAsync();
+        IChannel rabbitChannel = await rabbitConn.CreateChannelAsync();
+
+        await CreateRabbitMQQueuesAsync(rabbitChannel);
+
+        Console.WriteLine($"[Consumer] Escuchando topics '{string.Join(", ", KafkaTopic)}'...");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                var consumeResult = consumer.Consume(stoppingToken);
+                if (consumeResult == null) continue;
+
+                var evt = JsonSerializer.Deserialize<UserRegisteredEvent>(consumeResult.Message.Value);
+                if (evt == null) continue;
+
+
+                switch (consumeResult.Topic)
+                {
+                    case KafkaTopics.UserRegistered:
+                        Console.WriteLine($"[Consumer] Evento recibido → UserId: {evt.UserId} | Email: {evt.Email}");
+                        await HandleUserRegisteredAsync(evt, rabbitChannel);
+                        break;
+
+                    default:
+                        Console.WriteLine($"[Consumer] Topic no manejado: {consumeResult.Topic}");
+                        break;
+                }
+
+                // // ─── Construye el mensaje para RabbitMQ ────────────────
+                // var emailMessage = new SendWelcomeEmailMessage
+                // {
+                //     To = evt.Email,
+                //     Name = evt.Name,
+                //     UserId = evt.UserId
+                // };
+
+                // var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(emailMessage));
+
+                // // Marca el mensaje como persistente (sobrevive reinicios)
+                // var props = new BasicProperties();
+                // props.Persistent = true;
+
+                // await rabbitChannel.BasicPublishAsync(
+                //     exchange: "",           // default exchange
+                //     routingKey: EmailQueue,
+                //     mandatory: true,
+                //     basicProperties: props,
+                //     body: body
+                // );
+
+                Console.WriteLine($"[Consumer] Tarea de email publicada en RabbitMQ → {evt.Email}");
+
+                // Commit manual: solo confirmamos que procesamos el mensaje
+                // DESPUÉS de haberlo publicado exitosamente en RabbitMQ
+                consumer.Commit(consumeResult);
+            }
+            catch (OperationCanceledException)
+            {
+                break; // Shutdown limpio
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Consumer] Error: {ex.Message}");
+                // No hacemos commit → Kafka reentregará el mensaje
+            }
+        }
+
+        consumer.Close();
+    }
+
+
+    private async Task HandleUserRegisteredAsync(UserRegisteredEvent evt, IChannel rabbitChannel)
+    {
+        // ─── Construye el mensaje para RabbitMQ ────────────────
+        var emailMessage = new SendWelcomeEmailMessage
+        {
+            To = evt.Email,
+            Name = evt.Name,
+            UserId = evt.UserId
+        };
+
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(emailMessage));
+
+        // Marca el mensaje como persistente (sobrevive reinicios)
+        var props = new BasicProperties();
+        props.Persistent = true;
+
+        await rabbitChannel.BasicPublishAsync(
+            exchange: "",           // default exchange
+            routingKey: RabbitMQQueue.EmailQueue,
+            mandatory: true,
+            basicProperties: props,
+            body: body
+        );
+
+    }
+
+
+    private async Task EnsureTopicsExistAsync()
+    {
+        var adminConfig = new AdminClientConfig
+        {
+            BootstrapServers = _config["Kafka:BootstrapServers"]
+        };
+
+        using var adminClient = new AdminClientBuilder(adminConfig).Build();
+
+        try
+        {
+            var topics = KafkaTopics.All.Select(t => new TopicSpecification
+            {
+                Name = t,
+                NumPartitions = 1,
+                ReplicationFactor = 1
+            }).ToArray();
+
+            await adminClient.CreateTopicsAsync(topics);
+
+            Console.WriteLine($"[Kafka] Topics creados: {string.Join(", ", KafkaTopics.All)}");
+        }
+        catch (CreateTopicsException ex)
+        {
+            foreach (var result in ex.Results)
+            {
+                if (result.Error.Code == ErrorCode.TopicAlreadyExists)
+                {
+                    Console.WriteLine($"[Kafka] Topic '{result.Topic}' ya existe.");
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"[Kafka] Error creando topic '{result.Topic}': {result.Error.Reason}"
+                    );
+
+                    throw;
+                }
+            }
+        }
+    }
+
+    private async Task CreateRabbitMQQueuesAsync(IChannel channel)
+    {
+        foreach (var queue in RMQQueues)
+        {
+            await channel.QueueDeclareAsync(
+                queue: queue,
+                durable: true,
+                exclusive: false,
+                autoDelete: false
+            );
+
+            await channel.QueueDeclareAsync(
+                queue: $"{queue}.dlq",
+                durable: true,
+                exclusive: false,
+                autoDelete: false
+            );
+
+            Console.WriteLine($"[RabbitMQ] Cola '{queue}' asegurada.");
+        }
+    }
+}

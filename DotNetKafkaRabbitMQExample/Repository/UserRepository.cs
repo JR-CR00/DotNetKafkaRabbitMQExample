@@ -9,6 +9,8 @@ using Microsoft.IdentityModel.Tokens;
 using DotNetKafkaRabbitMQExample.Models;
 using DotNetKafkaRabbitMQExample.Models.Dto;
 using DotNetKafkaRabbitMQExample.Repository.IRepository;
+using Application.Events;
+using Infrastructure.Kafka;
 
 namespace DotNetKafkaRabbitMQExample.Repository;
 
@@ -20,16 +22,19 @@ public class UserRepository : IUserRepository
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IMapper _mapper;
+    private readonly IKafkaProducer _kafkaProducer;
 
     public UserRepository(ApplicationDbContext db, IConfiguration configuration,
     UserManager<ApplicationUser> userManager,
-    RoleManager<IdentityRole> roleManager, IMapper mapper)
+    RoleManager<IdentityRole> roleManager, 
+    IMapper mapper, IKafkaProducer kafkaProducer)
     {
         _secretKey = configuration.GetValue<string>("ApiSettings:SecretKey");
         _db = db;
         _userManager = userManager;
         _roleManager = roleManager;
         _mapper = mapper;
+        _kafkaProducer = kafkaProducer;
     }
 
     public ApplicationUser? GetUser(string id)
@@ -117,43 +122,47 @@ public class UserRepository : IUserRepository
     public async Task<UserDataDto> Register(CreateUserDto request)
     {
         if (string.IsNullOrEmpty(request.Username) || string.IsNullOrEmpty(request.Password))
-        {
             throw new ArgumentException("Username and password are required.");
-        }
 
         var user = new ApplicationUser
         {
             UserName = request.Username,
             Name = request.Name,
-            Email = request.Username, // Assuming email is the same as username, adjust if needed
+            Email = request.Username,
             NormalizedUserName = request.Username.ToUpper()
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
-
         if (!result.Succeeded)
-        {
             throw new ApplicationException("Error occurred while registering the user.");
-        }
 
-        var userRole = request.Role ?? "User"; // Default role is "User" if not provided
+        var userRole = request.Role ?? "User";
         var roleExists = await _roleManager.RoleExistsAsync(userRole);
-
         if (!roleExists)
-        {
-            var roleIdentity = new IdentityRole(userRole);
-            await _roleManager.CreateAsync(roleIdentity);
-        }
+            await _roleManager.CreateAsync(new IdentityRole(userRole));
 
         await _userManager.AddToRoleAsync(user, userRole);
 
-        var createdUser = await _db.ApplicationUsers.FirstOrDefaultAsync(u => u.UserName == request.Username);
+        var createdUser = await _db.ApplicationUsers
+            .FirstOrDefaultAsync(u => u.UserName == request.Username);
+
         if (createdUser == null)
+            throw new InvalidOperationException("User not found after creation.");
+
+        // ─── NUEVO: Publicar evento en Kafka ──────────────────────────
+        // Solo 2 líneas — tu lógica de negocio no cambia para nada
+        var evt = new UserRegisteredEvent
         {
-            throw new InvalidOperationException("User registration failed: User not found after creation.");
-        }
+            UserId = createdUser.Id,
+            Username = createdUser.UserName!,
+            Email = createdUser.Email!,
+            Name = createdUser.Name,
+            RegisteredAt = DateTime.UtcNow
+        };
+
+        await _kafkaProducer.PublishUserRegisteredAsync(evt);
+        // ──────────────────────────────────────────────────────────────
 
         return _mapper.Map<UserDataDto>(createdUser);
-
     }
 }
