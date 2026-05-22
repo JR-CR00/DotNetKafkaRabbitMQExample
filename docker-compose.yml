@@ -1,0 +1,29 @@
+services:
+
+  dotnet-api:
+    image: ${DOCKER_CONTAINER}:${NEW_VERSION}
+    container_name: miapi
+    volumes:
+      - ./wwwroot:/app/wwwroot
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
+
+      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection}
+
+      ApiSettings__SecretKey: ${ApiSettings__SecretKey}
+
+    networks:
+      - proxy-network
+      - db-network
+
+    restart: unless-stopped
+
+    expose:
+      - "8080"
+
+networks:
+  proxy-network:
+    external: true
+  db-network:
+    external: true

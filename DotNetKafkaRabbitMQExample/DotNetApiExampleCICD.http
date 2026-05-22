@@ -1,0 +1,177 @@
+@DotNetKafkaRabbitMQExample_HostAddress = http://localhost:5285/api
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/category
+Accept: application/json
+
+###
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/category/2
+Accept: application/json
+
+###
+
+## Category Endpoints
+POST {{DotNetKafkaRabbitMQExample_HostAddress}}/category
+Accept: application/json
+Content-Type: application/json
+
+{
+    "name": "Fruits"
+}
+
+###
+
+PATCH {{DotNetKafkaRabbitMQExample_HostAddress}}/category/1
+Accept: application/json
+Content-Type: application/json
+
+{
+    "name": "Fruits and Vegetables"
+}
+
+###
+
+DELETE {{DotNetKafkaRabbitMQExample_HostAddress}}/category/1
+Accept: application/json
+
+### PRODUCT ENDPOINTS
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/Product
+Accept: application/json
+
+###
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/Product/1
+Accept: application/json
+
+###
+
+# @name CreateProduct
+POST {{DotNetKafkaRabbitMQExample_HostAddress}}/Product
+Accept: application/json
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+New Product with Image
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+Description for product with image
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+150.50
+--WebAppBoundary
+Content-Disposition: form-data; name="sku"
+
+IMG-SKU-001
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+25
+--WebAppBoundary
+Content-Disposition: form-data; name="categoryId"
+
+1
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="product.jpg"
+Content-Type: image/jpeg
+
+< ./product-sample.jpg
+--WebAppBoundary--
+
+###
+
+# @name UpdateProduct
+PATCH {{DotNetKafkaRabbitMQExample_HostAddress}}/Product/1
+Accept: application/json
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Updated Product with Image
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+Updated description
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+120.00
+--WebAppBoundary
+Content-Disposition: form-data; name="sku"
+
+IMG-SKU-001-UPD
+--WebAppBoundary
+Content-Disposition: form-data; name="stock"
+
+15
+--WebAppBoundary
+Content-Disposition: form-data; name="categoryId"
+
+1
+--WebAppBoundary
+Content-Disposition: form-data; name="image"; filename="updated-product.jpg"
+Content-Type: image/jpeg
+
+< ./product-sample.jpg
+--WebAppBoundary--
+
+###
+
+DELETE {{DotNetKafkaRabbitMQExample_HostAddress}}/Product/1
+Accept: application/json
+
+###
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/Product/GetProductsForCategory/1
+Accept: application/json
+
+###
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/Product/Search?searchTerm=product
+Accept: application/json
+
+###
+
+POST {{DotNetKafkaRabbitMQExample_HostAddress}}/Product/BuyProduct?name=New Product&quantity=2
+Accept: application/json
+
+### USER ENDPOINTS
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/User
+Accept: application/json
+
+###
+
+GET {{DotNetKafkaRabbitMQExample_HostAddress}}/User/1
+Accept: application/json
+
+###
+
+POST {{DotNetKafkaRabbitMQExample_HostAddress}}/User/Register
+Accept: application/json
+Content-Type: application/json
+
+{
+    "username": "newuser",
+    "password": "Password123$$232",
+    "role": "admin",
+    "name": "New User"
+}
+
+###
+
+POST {{DotNetKafkaRabbitMQExample_HostAddress}}/User/Login
+Accept: application/json
+Content-Type: application/json
+
+{
+    "username": "newuser",
+    "password": "Password123$$232"
+}
+
+

@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ApiEcommerce
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+# Comandos útiles:
+# Levantar los contenedores en segundo plano:
+#   docker-compose up -d
+# Apagar y eliminar contenedores (no borra los volúmenes):
+#   docker-compose down
