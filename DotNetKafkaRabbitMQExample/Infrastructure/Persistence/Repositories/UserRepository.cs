@@ -1,3 +1,4 @@
+using DotNetKafkaRabbitMQExample.Infrastructure.Messaging.Kafka;
 using DotNetKafkaRabbitMQExample.Infrastructure.Persistence;
 using System;
 using System.IdentityModel.Tokens.Jwt;
@@ -167,5 +168,7 @@ public class UserRepository : IUserRepository
         return _mapper.Map<UserDataDto>(createdUser);
     }
 }
+
+
 
 

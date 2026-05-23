@@ -70,3 +70,5 @@ namespace DotNetKafkaRabbitMQExample.Migrations
 }
 
 
+
+

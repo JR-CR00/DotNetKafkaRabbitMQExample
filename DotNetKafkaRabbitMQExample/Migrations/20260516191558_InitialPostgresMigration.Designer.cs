@@ -387,3 +387,5 @@ namespace DotNetKafkaRabbitMQExample.Migrations
 }
 
 
+
+

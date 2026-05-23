@@ -1,3 +1,5 @@
+using DotNetKafkaRabbitMQExample.Infrastructure.Workers;
+using DotNetKafkaRabbitMQExample.Infrastructure.Messaging.Kafka;
 using Asp.Versioning;
 using Mapster;
 using MapsterMapper;
@@ -68,10 +70,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 // Productor Kafka (singleton: una sola conexión reutilizada)
 builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
-
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ITelegramService, TelegramService>();
 builder.Services.AddHostedService<KafkaConsumerService>();
-
 builder.Services.AddHostedService<EmailWorkerService>();
+builder.Services.AddHostedService<TelegramWorkerService>();
 
 
 builder.Services.AddAuthentication(options =>
@@ -148,6 +151,8 @@ if (app.Environment.IsProduction())
 }
 
 app.Run();
+
+
 
 
 

@@ -1,4 +1,3 @@
-using DotNetKafkaRabbitMQExample.Infrastructure.Persistence;
 using System;
 using Microsoft.AspNetCore.Identity;
 using DotNetKafkaRabbitMQExample.Domain.Entities;
@@ -221,5 +220,7 @@ public static class DataSeeder
      appContext.SaveChanges();
     }
 }
+
+
 
 

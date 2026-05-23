@@ -1,4 +1,3 @@
-using DotNetKafkaRabbitMQExample.Domain.Entities;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -32,5 +31,7 @@ public class Product
     public required Category Category { get; set; }
 
 }
+
+
 
 

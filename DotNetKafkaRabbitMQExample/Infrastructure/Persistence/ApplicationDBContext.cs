@@ -1,4 +1,3 @@
-using DotNetKafkaRabbitMQExample.Infrastructure.Persistence;
 namespace DotNetKafkaRabbitMQExample.Infrastructure.Persistence;
 
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -23,6 +22,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 
 
 }
+
+
 
 
 

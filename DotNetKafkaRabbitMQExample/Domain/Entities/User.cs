@@ -1,4 +1,3 @@
-using DotNetKafkaRabbitMQExample.Domain.Entities;
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -14,5 +13,7 @@ public class User
     public string? Role {get; set; }
 
 }
+
+
 
 

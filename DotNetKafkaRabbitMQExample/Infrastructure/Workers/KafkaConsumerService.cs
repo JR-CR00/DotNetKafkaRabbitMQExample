@@ -1,4 +1,5 @@
-using DotNetKafkaRabbitMQExample.Domain.Constants;
+using DotNetKafkaRabbitMQExample.Infrastructure.Messaging.Kafka;
+using DotNetKafkaRabbitMQExample.Infrastructure.Messaging.RabbitMQ;
 using DotNetKafkaRabbitMQExample.Domain.Entities;
 using Confluent.Kafka;
 using RabbitMQ.Client;
@@ -7,7 +8,7 @@ using System.Text.Json;
 using DotNetKafkaRabbitMQExample.Application.Events;
 using Confluent.Kafka.Admin;
 
-namespace DotNetKafkaRabbitMQExample.Infrastructure.Services;
+namespace DotNetKafkaRabbitMQExample.Infrastructure.Workers;
 
 // BackgroundService corre en un hilo separado sin bloquear tu API
 public class KafkaConsumerService : BackgroundService
@@ -76,7 +77,6 @@ public class KafkaConsumerService : BackgroundService
                 var evt = JsonSerializer.Deserialize<UserRegisteredEvent>(consumeResult.Message.Value);
                 if (evt == null) continue;
 
-
                 switch (consumeResult.Topic)
                 {
                     case KafkaTopics.UserRegistered:
@@ -89,32 +89,8 @@ public class KafkaConsumerService : BackgroundService
                         break;
                 }
 
-                // // ─── Construye el mensaje para RabbitMQ ────────────────
-                // var emailMessage = new SendWelcomeEmailMessage
-                // {
-                //     To = evt.Email,
-                //     Name = evt.Name,
-                //     UserId = evt.UserId
-                // };
-
-                // var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(emailMessage));
-
-                // // Marca el mensaje como persistente (sobrevive reinicios)
-                // var props = new BasicProperties();
-                // props.Persistent = true;
-
-                // await rabbitChannel.BasicPublishAsync(
-                //     exchange: "",           // default exchange
-                //     routingKey: EmailQueue,
-                //     mandatory: true,
-                //     basicProperties: props,
-                //     body: body
-                // );
-
                 Console.WriteLine($"[Consumer] Tarea de email publicada en RabbitMQ → {evt.Email}");
-
-                // Commit manual: solo confirmamos que procesamos el mensaje
-                // DESPUÉS de haberlo publicado exitosamente en RabbitMQ
+     
                 consumer.Commit(consumeResult);
             }
             catch (OperationCanceledException)
@@ -124,7 +100,6 @@ public class KafkaConsumerService : BackgroundService
             catch (Exception ex)
             {
                 Console.WriteLine($"[Consumer] Error: {ex.Message}");
-                // No hacemos commit → Kafka reentregará el mensaje
             }
         }
 
@@ -134,28 +109,38 @@ public class KafkaConsumerService : BackgroundService
 
     private async Task HandleUserRegisteredAsync(UserRegisteredEvent evt, IChannel rabbitChannel)
     {
-        // ─── Construye el mensaje para RabbitMQ ────────────────
-        var emailMessage = new SendWelcomeEmailMessage
+        var notificationData = new WelcomeNotification
         {
             To = evt.Email,
             Name = evt.Name,
             UserId = evt.UserId
         };
 
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(emailMessage));
+        // ─── Publicar en la cola de Email ────────────────
+        var emailPayload = new QueuePayload<WelcomeNotification>(QueueName.EmailQueue, notificationData);
+        var emailBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(emailPayload));
 
-        // Marca el mensaje como persistente (sobrevive reinicios)
-        var props = new BasicProperties();
-        props.Persistent = true;
+        var props = new BasicProperties { Persistent = true };
 
         await rabbitChannel.BasicPublishAsync(
-            exchange: "",           // default exchange
+            exchange: "",
             routingKey: RabbitMQQueue.NotificationsEmail,
             mandatory: true,
             basicProperties: props,
-            body: body
+            body: emailBody
         );
 
+        // ─── Publicar en la cola de Telegram ────────────────
+        var telegramPayload = new QueuePayload<WelcomeNotification>(QueueName.NotificationQueue, notificationData);
+        var telegramBody = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(telegramPayload));
+
+        await rabbitChannel.BasicPublishAsync(
+            exchange: "",
+            routingKey: RabbitMQQueue.NotificationsTelegram,
+            mandatory: true,
+            basicProperties: props,
+            body: telegramBody
+        );
     }
 
 
@@ -223,6 +208,8 @@ public class KafkaConsumerService : BackgroundService
         }
     }
 }
+
+
 
 
 

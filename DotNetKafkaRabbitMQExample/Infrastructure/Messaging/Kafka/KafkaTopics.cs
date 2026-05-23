@@ -1,6 +1,4 @@
-using DotNetKafkaRabbitMQExample.Domain.Constants;
-using DotNetKafkaRabbitMQExample.Domain.Entities;
-namespace DotNetKafkaRabbitMQExample.Domain.Constants;
+namespace DotNetKafkaRabbitMQExample.Infrastructure.Messaging.Kafka;
 
 
 
@@ -15,6 +13,8 @@ public static class KafkaTopics
         , OrderPlaced
     ];
 }
+
+
 
 
 

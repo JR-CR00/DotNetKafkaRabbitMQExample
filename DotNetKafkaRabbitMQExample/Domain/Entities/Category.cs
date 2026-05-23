@@ -1,4 +1,3 @@
-using DotNetKafkaRabbitMQExample.Domain.Entities;
 namespace DotNetKafkaRabbitMQExample.Domain.Entities;
 
 using System.ComponentModel.DataAnnotations;
@@ -12,6 +11,8 @@ public class Category
     [Required]
     public DateTime CreatedAt { get; set; }
 }
+
+
 
 
 
