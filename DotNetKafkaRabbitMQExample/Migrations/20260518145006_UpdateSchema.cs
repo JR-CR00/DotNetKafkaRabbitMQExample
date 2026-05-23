@@ -1,3 +1,4 @@
+using DotNetKafkaRabbitMQExample.Domain.Entities;
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -67,3 +68,5 @@ namespace DotNetKafkaRabbitMQExample.Migrations
         }
     }
 }
+
+

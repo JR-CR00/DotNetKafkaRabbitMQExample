@@ -1,4 +1,5 @@
-namespace Application.Events;
+using DotNetKafkaRabbitMQExample.Domain.Entities;
+namespace DotNetKafkaRabbitMQExample.Application.Events;
 
 // Evento que Kafka transporta cuando un usuario se registra
 public class UserRegisteredEvent
@@ -17,3 +18,6 @@ public class SendWelcomeEmailMessage
     public string Name    { get; set; } = string.Empty;
     public string UserId  { get; set; } = string.Empty;
 }
+
+
+

@@ -7,12 +7,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using DotNetKafkaRabbitMQExample.Data;
-using DotNetKafkaRabbitMQExample.Models;
-using DotNetKafkaRabbitMQExample.Repository;
-using DotNetKafkaRabbitMQExample.Repository.IRepository;
-using Infrastructure.Kafka;
-using Infrastructure.Workers;
+using DotNetKafkaRabbitMQExample.Infrastructure.Persistence;
+using DotNetKafkaRabbitMQExample.Domain.Entities;
+using DotNetKafkaRabbitMQExample.Infrastructure.Persistence.Repositories;
+using DotNetKafkaRabbitMQExample.Application.Interfaces;
+using DotNetKafkaRabbitMQExample.Infrastructure.Services;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,3 +148,6 @@ if (app.Environment.IsProduction())
 }
 
 app.Run();
+
+
+

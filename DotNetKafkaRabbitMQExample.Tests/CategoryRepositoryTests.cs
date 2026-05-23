@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using DotNetKafkaRabbitMQExample.Models;
-using DotNetKafkaRabbitMQExample.Repository;
+using DotNetKafkaRabbitMQExample.Domain.Entities;
+using DotNetKafkaRabbitMQExample.Infrastructure.Persistence;
+using DotNetKafkaRabbitMQExample.Infrastructure.Persistence.Repositories;
 using Xunit;
 
 namespace DotNetKafkaRabbitMQExample.Tests
@@ -98,3 +99,4 @@ namespace DotNetKafkaRabbitMQExample.Tests
         }
     }
 }
+
