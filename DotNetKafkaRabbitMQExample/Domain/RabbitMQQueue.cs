@@ -1,7 +1,7 @@
 
 public static class RabbitMQQueue
 {
-    public const string EmailQueue = "email_queue";
+    public const string NotificationsEmail = "notifications.email";
 
-    public static readonly string[] All =  [ EmailQueue  ];
+    public static readonly string[] All =  [ NotificationsEmail  ];
 }

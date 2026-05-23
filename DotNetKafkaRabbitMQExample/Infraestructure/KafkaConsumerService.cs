@@ -148,7 +148,7 @@ public class KafkaConsumerService : BackgroundService
 
         await rabbitChannel.BasicPublishAsync(
             exchange: "",           // default exchange
-            routingKey: RabbitMQQueue.EmailQueue,
+            routingKey: RabbitMQQueue.NotificationsEmail,
             mandatory: true,
             basicProperties: props,
             body: body
