@@ -1,5 +1,4 @@
 services:
-
   # ─── Kafka Broker ──────────────────────────────────────────────
    kafka:
     image: confluentinc/cp-kafka:8.1.3
@@ -34,7 +33,7 @@ services:
       # ─────────────────────────────
       # Cluster ID
       # ─────────────────────────────
-      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      CLUSTER_ID: aWbuQg9gRrKBzXG2WEomeA
 
       # ─────────────────────────────
       # Replication
@@ -65,41 +64,12 @@ services:
         - "5672:5672"    # AMQP (conexión desde tu app)
         - "15672:15672"  # Management UI
       environment:
-        RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
-        RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+        RABBITMQ_DEFAULT_USER: admin
+        RABBITMQ_DEFAULT_PASS: admin123
       volumes:
         - rabbitmq_data:/var/lib/rabbitmq
       networks:
         - kafka-network
-
-dotnet-api:
-    depends_on:
-      - kafka
-      - rabbitmq
-    image: ${DOCKER_CONTAINER}:${NEW_VERSION}
-    container_name: miapirabbitmq
-    volumes:
-      - ./wwwroot:/app/wwwroot
-
-    environment:
-      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT}
-
-      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection}
-
-      ApiSettings__SecretKey: ${ApiSettings__SecretKey}
-
-      Telegram__BotToken: ${Telegram__BotToken}
-
-      Telegram__ChatId: ${Telegram__ChatId}
-
-    networks:
-      - proxy-network
-      - db-network
-
-    restart: unless-stopped
-
-    expose:
-      - "8080"
 
 volumes:
   rabbitmq_data:

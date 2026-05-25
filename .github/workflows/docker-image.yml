@@ -92,10 +92,12 @@ jobs:
 
     - name: Copy deployment files
       env:
-        ConnectionStrings__DefaultConnection: ${{ secrets.APP_SETTINGS_STRING_CONNECTION }}
+        ConnectionStrings__DefaultConnection: ${{ secrets.ConnectionStrings__DefaultConnection }}
         ApiSettings__SecretKey: ${{ secrets.APP_SETTINGS_SECRET_KEY }}
         DOCKER_CONTAINER: ${{ secrets.DOCKER_CONTAINER }}
         NEW_VERSION: ${{needs.build.outputs.NEW_VERSION}}
+        Telegram__BotToken: ${{ secrets.Telegram__BotToken }}
+        Telegram__ChatId: ${{ secrets.Telegram__ChatId }}
       run: |
           mkdir -p /apps/dotnet-api
           cp docker-compose.yml /apps/dotnet-api/docker-compose.yml
@@ -107,6 +109,8 @@ jobs:
           ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
           ApiSettings__SecretKey=${ApiSettings__SecretKey}
           ASPNETCORE_ENVIRONMENT=Production
+          Telegram__BotToken=${Telegram__BotToken}
+          Telegram__ChatId=${Telegram__ChatId}
           EOF
 
     - name: Pull Docker Image

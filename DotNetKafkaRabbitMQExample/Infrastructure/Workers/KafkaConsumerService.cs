@@ -90,7 +90,7 @@ public class KafkaConsumerService : BackgroundService
                 }
 
                 Console.WriteLine($"[Consumer] Tarea de email publicada en RabbitMQ → {evt.Email}");
-     
+
                 consumer.Commit(consumeResult);
             }
             catch (OperationCanceledException)
@@ -194,7 +194,12 @@ public class KafkaConsumerService : BackgroundService
                 queue: queue,
                 durable: true,
                 exclusive: false,
-                autoDelete: false
+                autoDelete: false,
+                arguments: new Dictionary<string, object?>
+                    {
+                        { "x-dead-letter-exchange", "" },
+                        { "x-dead-letter-routing-key", $"{queue}.dlq" }
+                    }
             );
 
             await channel.QueueDeclareAsync(
