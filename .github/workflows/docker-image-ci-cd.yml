@@ -98,12 +98,15 @@ jobs:
         NEW_VERSION: ${{needs.build.outputs.NEW_VERSION}}
         Telegram__BotToken: ${{ secrets.Telegram__BotToken }}
         Telegram__ChatId: ${{ secrets.Telegram__ChatId }}
+        KAFKA_CLUSTER_ID: ${{ secrets.KAFKA_CLUSTER_ID }}
+        RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER }}
+        RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_DEFAULT_PASS }}
       run: |
-          mkdir -p /apps/dotnet-api
-          cp docker-compose.yml /apps/dotnet-api/docker-compose.yml
-          rm -rf /apps/dotnet-api/.env
+          mkdir -p /apps/dotnet-api-rabbitmq
+          cp docker-compose.yml /apps/dotnet-api-rabbitmq/docker-compose.yml
+          rm -rf /apps/dotnet-api-rabbitmq/.env
 
-          cat > /apps/dotnet-api/.env <<EOF
+          cat > /apps/dotnet-api-rabbitmq/.env <<EOF
           DOCKER_CONTAINER=$DOCKER_CONTAINER
           NEW_VERSION=$NEW_VERSION
           ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
@@ -111,6 +114,9 @@ jobs:
           ASPNETCORE_ENVIRONMENT=Production
           Telegram__BotToken=${Telegram__BotToken}
           Telegram__ChatId=${Telegram__ChatId}
+          KAFKA_CLUSTER_ID=${KAFKA_CLUSTER_ID}
+          RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+          RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
           EOF
 
     - name: Pull Docker Image
@@ -118,12 +124,12 @@ jobs:
         DOCKER_CONTAINER: ${{ secrets.DOCKER_CONTAINER }}
         NEW_VERSION: ${{needs.build.outputs.NEW_VERSION}}
       run: |
-          cd /apps/dotnet-api
+          cd /apps/dotnet-api-rabbitmq
           docker pull "$DOCKER_CONTAINER:$NEW_VERSION"
 
     - name: Down Docker Containers
       run: |
-          cd /apps/dotnet-api
+          cd /apps/dotnet-api-rabbitmq
           docker compose down || true
           docker compose up -d
 

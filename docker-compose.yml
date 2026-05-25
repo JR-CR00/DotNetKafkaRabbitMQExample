@@ -92,6 +92,12 @@ dotnet-api:
 
       Telegram__ChatId: ${Telegram__ChatId}
 
+      KAFKA_CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+  
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+
     networks:
       - proxy-network
       - db-network
