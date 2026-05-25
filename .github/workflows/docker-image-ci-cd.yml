@@ -1,0 +1,136 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  tests:
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # - name: Setup .NET
+    #   uses: actions/setup-dotnet@v4
+    #   with:
+    #     dotnet-version: '10.0.x'
+
+
+    - name: Run Tests
+      run: |
+        dotnet test "DotNetKafkaRabbitMQExample.Tests/DotNetKafkaRabbitMQExample.Tests.csproj" \
+          --verbosity detailed 
+
+      env:
+        ConnectionStrings__DefaultConnection: ${{ secrets.APP_SETTINGS_STRING_CONNECTION_FOR_TESTING }}
+
+
+  build:
+    needs: tests
+    outputs:
+      NEW_VERSION: ${{ steps.version.outputs.version }}
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    
+    - name: Generate Version
+      id: version
+      uses: paulhatch/semantic-version@v5.4.0
+      with:
+        tag_prefix: "v"
+        major_pattern: "major:"
+        minor_pattern: "feat:"
+        version_format: "${major}.${minor}.${patch}-prerelease${increment}"  
+        bump_each_commit: true
+
+    - name: Set Variables
+      run: |
+          echo "NEW_VERSION=${{ steps.version.outputs.version }}" >> $GITHUB_ENV
+          echo "DOCKER_CONTAINER=${{ secrets.DOCKER_CONTAINER }}" >> $GITHUB_ENV
+
+    - name: Docker Login
+      run: |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login \
+          -u "${{ secrets.DOCKER_USER }}" \
+          --password-stdin
+
+    - name: Build Docker Image
+      run: |
+          docker build \
+            -t "$DOCKER_CONTAINER:$NEW_VERSION" \
+            -t "$DOCKER_CONTAINER:latest" .
+
+    - name: Push Docker Image
+      run: |
+          docker push "$DOCKER_CONTAINER:$NEW_VERSION"
+          docker push "$DOCKER_CONTAINER:latest"
+
+    - name: Docker Logout
+      run: docker logout
+
+  deploy:
+    needs: build
+
+    runs-on: self-hosted
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Login Docker
+      run : |
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login \
+          -u "${{ secrets.DOCKER_USER }}" \
+          --password-stdin
+
+    - name: Copy deployment files
+      env:
+        ConnectionStrings__DefaultConnection: ${{ secrets.ConnectionStrings__DefaultConnection }}
+        ApiSettings__SecretKey: ${{ secrets.APP_SETTINGS_SECRET_KEY }}
+        DOCKER_CONTAINER: ${{ secrets.DOCKER_CONTAINER }}
+        NEW_VERSION: ${{needs.build.outputs.NEW_VERSION}}
+        Telegram__BotToken: ${{ secrets.Telegram__BotToken }}
+        Telegram__ChatId: ${{ secrets.Telegram__ChatId }}
+      run: |
+          mkdir -p /apps/dotnet-api
+          cp docker-compose.yml /apps/dotnet-api/docker-compose.yml
+          rm -rf /apps/dotnet-api/.env
+
+          cat > /apps/dotnet-api/.env <<EOF
+          DOCKER_CONTAINER=$DOCKER_CONTAINER
+          NEW_VERSION=$NEW_VERSION
+          ConnectionStrings__DefaultConnection=${ConnectionStrings__DefaultConnection}
+          ApiSettings__SecretKey=${ApiSettings__SecretKey}
+          ASPNETCORE_ENVIRONMENT=Production
+          Telegram__BotToken=${Telegram__BotToken}
+          Telegram__ChatId=${Telegram__ChatId}
+          EOF
+
+    - name: Pull Docker Image
+      env:
+        DOCKER_CONTAINER: ${{ secrets.DOCKER_CONTAINER }}
+        NEW_VERSION: ${{needs.build.outputs.NEW_VERSION}}
+      run: |
+          cd /apps/dotnet-api
+          docker pull "$DOCKER_CONTAINER:$NEW_VERSION"
+
+    - name: Down Docker Containers
+      run: |
+          cd /apps/dotnet-api
+          docker compose down || true
+          docker compose up -d
+
+    - name: Logout Docker
+      run: docker logout
+    
+    
+ 
+    
+  
