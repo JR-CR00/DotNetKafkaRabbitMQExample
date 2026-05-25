@@ -72,7 +72,7 @@ services:
       networks:
         - kafka-network
 
-dotnet-api:
+dotnet-api-rabbitmq:
     depends_on:
       - kafka
       - rabbitmq
