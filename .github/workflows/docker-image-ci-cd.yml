@@ -92,12 +92,12 @@ jobs:
 
     - name: Copy deployment files
       env:
-        ConnectionStrings__DefaultConnection: ${{ secrets.ConnectionStrings__DefaultConnection }}
+        ConnectionStrings__DefaultConnection: ${{ secrets.APP_SETTINGS_STRING_CONNECTION }}
         ApiSettings__SecretKey: ${{ secrets.APP_SETTINGS_SECRET_KEY }}
         DOCKER_CONTAINER: ${{ secrets.DOCKER_CONTAINER }}
         NEW_VERSION: ${{needs.build.outputs.NEW_VERSION}}
-        Telegram__BotToken: ${{ secrets.Telegram__BotToken }}
-        Telegram__ChatId: ${{ secrets.Telegram__ChatId }}
+        Telegram__BotToken: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        Telegram__ChatId: ${{ secrets.TELEGRAM_CHAT_ID }}
         KAFKA_CLUSTER_ID: ${{ secrets.KAFKA_CLUSTER_ID }}
         RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER }}
         RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_DEFAULT_PASS }}
